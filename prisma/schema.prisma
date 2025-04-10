@@ -10,9 +10,9 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
-  name          String?
+  id            String    @id
+  name          String    @db.Text
+  email         String
   emailVerified Boolean
   image         String?   @db.Text
   createdAt     DateTime
@@ -20,6 +20,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
+  @@unique([email])
   @@map("user")
 }
 
@@ -31,7 +32,7 @@ model Session {
   updatedAt DateTime
   ipAddress String?  @db.Text
   userAgent String?  @db.Text
-  userId    Int
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
@@ -42,7 +43,7 @@ model Account {
   id                    String    @id
   accountId             String    @db.Text
   providerId            String    @db.Text
-  userId                Int
+  userId                String
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?   @db.Text
   refreshToken          String?   @db.Text

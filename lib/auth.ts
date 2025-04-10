@@ -10,4 +10,6 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: false
   },
+  
+  
 })
