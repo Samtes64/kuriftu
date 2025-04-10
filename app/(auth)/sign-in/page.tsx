@@ -80,7 +80,13 @@ export default function SignIn() {
                 </FormItem>
               )}
             />
-            <Button className="w-full" type="submit">Submit</Button>
+            <Button 
+  className="w-full" 
+  type="submit"
+  disabled={form.formState.isSubmitting}
+>
+  {form.formState.isSubmitting ? "Signing in..." : "Sign In"}
+</Button>
           </form>
         </Form>
       </CardContent>
