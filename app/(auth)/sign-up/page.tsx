@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { formSchema } from "@/lib/auth-schema";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { useRouter } from 'next/navigation';
 
 export default function SignUp() {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -22,6 +23,7 @@ export default function SignUp() {
       password: "",
     },
   })
+  const router = useRouter();
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const { name, email, password } = values;
@@ -38,7 +40,10 @@ export default function SignUp() {
         )
       },
       onSuccess: () => {
-        form.reset()
+        form.reset();
+        toast( "you've signed up successfully, please login");
+        router.push('/sign-in');
+
       },
       onError: (ctx) => {
         toast( ctx.error.message);
