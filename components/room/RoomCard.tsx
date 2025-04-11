@@ -2,7 +2,7 @@ import { Room } from "@prisma/client"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tv, Wifi, Mountain, Trees, AirVent, DoorOpen, Trash2, Edit, Eye, Loader2 } from "lucide-react"
+import { Tv, Wifi, Mountain, Trees, AirVent, DoorOpen, Trash2, Edit,  Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
@@ -136,12 +136,7 @@ export const RoomCard = ({ room, onDeleteSuccess }: RoomCardProps) => {
               Edit
             </Link>
           </Button>
-          <Button variant="outline" size="sm" className="flex-1 gap-2" asChild>
-            <Link href={`/dashboard/rooms/${room.id}`}>
-              <Eye className="h-4 w-4" />
-              View
-            </Link>
-          </Button>
+          
           <Button 
             variant="destructive" 
             size="sm" 
