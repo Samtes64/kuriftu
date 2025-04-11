@@ -30,6 +30,7 @@ import { Hotel, Room } from "@/prisma/app/generated/prisma/client"
 import { ViewHotelModal } from "./VIewHotelModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
 import { AddRoomForm } from "../room/AddRoomForm"
+import { RoomCard } from "../room/RoomCard"
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null
@@ -550,6 +551,16 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     </div>
   </div>
 </div>
+{hotel?.rooms && hotel.rooms.length > 0 && (
+  <div className="mt-8 space-y-6">
+    <h3 className="text-2xl font-semibold tracking-tight">Available Rooms</h3>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {hotel.rooms.map((room) => (
+        <RoomCard key={room.id} room={room} />
+      ))}
+    </div>
+  </div>
+)}
             </form>
           </Form>
         </CardContent>
