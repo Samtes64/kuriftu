@@ -24,6 +24,7 @@ import { Loader2, UploadCloud, X } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import axios from "axios";
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null
@@ -149,37 +150,47 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!session?.user?.id) {
-      toast.error("You must be logged in to save a hotel")
-      return
+      toast.error("You must be logged in to save a hotel");
+      return;
     }
-
-    setIsLoading(true)
+  
+    setIsLoading(true);
+  
     try {
       const payload = {
         ...values,
-        userId: session.user.id
-      }
-
-      console.log("Form payload:", payload) // For debugging
-
-      // Replace with your actual API calls
+        userId: session.user.id, // optional if backend attaches it
+      };
+  
+      console.log("Form payload:", payload); // Debugging
+  
+      let response;
       if (hotel) {
-        // await updateHotel(hotel.id, payload)
-        toast.success("Hotel updated successfully")
-      } else {
-        // await createHotel(payload)
-        toast.success("Hotel created successfully")
-      }
+        // UPDATE hotel
+        response = await axios.put(`/api/hotel`, { ...payload, id: hotel.id });
 
-      // Optional: Redirect after successful submission
-      // window.location.href = '/dashboard/hotels'
-    } catch (error) {
-      console.error(error)
-      toast.error("An error occurred while saving the hotel")
+      } else {
+        // CREATE hotel
+        response = await axios.post("/api/hotel", payload);
+      }
+  
+      toast.success(hotel ? `Hotel updated successfully: ${response}` : "Hotel created successfully");
+  
+      // Optional redirect
+      // window.location.href = "/dashboard/hotels";
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const message = (error as any).response?.data || "An error occurred while saving the hotel";
+      toast.error(message);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
+
+  
 
   return (
     <div className="container max-w-6xl py-8">
