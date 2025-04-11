@@ -637,7 +637,8 @@ export const EditRoomForm = ({ room, onSuccess, onCancel }: EditRoomFormProps) =
                 Cancel
               </Button>
               <Button
-                type="submit"
+                type="button"
+                onClick={form.handleSubmit(onSubmit)}
                 disabled={isLoading || isUploading || imageIsDeleting || !form.formState.isDirty}
               >
                 {isLoading ? (
