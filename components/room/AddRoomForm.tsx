@@ -1,4 +1,3 @@
-// components/room/AddRoomForm.tsx
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,9 +20,10 @@ import { Loader2, UploadCloud, X, Tv, Wifi, Mountain, Trees, AirVent, DoorOpen }
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
 import { useState } from "react"
-// import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import axios from "axios"
+import { useRouter } from "next/navigation"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
@@ -83,12 +83,14 @@ const roomFormSchema = z.object({
 interface AddRoomFormProps {
   hotelId: string
   onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
+export const AddRoomForm = ({ hotelId, onSuccess, onCancel }: AddRoomFormProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [imageIsDeleting, setImageIsDeleting] = useState(false)
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof roomFormSchema>>({
     resolver: zodResolver(roomFormSchema),
@@ -132,7 +134,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
       const filePath = `rooms/${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from("room-images")
+        .from("images")
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -141,7 +143,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage
-        .from("room-images")
+        .from("images")
         .getPublicUrl(filePath)
 
       form.setValue("image", publicUrl)
@@ -160,12 +162,12 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
     
     setImageIsDeleting(true)
     try {
-      const imagePath = imageUrl.split('/room-images/')[1]
+     const imagePath = imageUrl.split('/').pop()?.split('?')[0] || ""
       
       if (imagePath) {
         const { error } = await supabase.storage
-          .from("room-images")
-          .remove([imagePath])
+          .from("images")
+          .remove([`hotels/${imagePath}`])
         
         if (error) throw error
       }
@@ -180,7 +182,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
     }
   }
 
-  async function onSubmit(values: z.infer<typeof roomFormSchema>) {
+  const onSubmit = async (values: z.infer<typeof roomFormSchema>) => {
     setIsLoading(true)
     try {
       const payload = {
@@ -188,20 +190,20 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
         hotelId
       }
 
-      // Replace with your actual API call
-      // const response = await axios.post(`/api/hotels/${hotelId}/rooms`, payload)
-      console.log("Room submission:", payload)
+      const { data } = await axios.post(`/api/room`, payload)
+      console.log(data)
       
-      toast.success("Room added successfully", {
-        description: `${values.title} has been created`,
+      toast.success("Room created successfully", {
+        description: `${values.title} has been added to your hotel`,
       })
       
       form.reset()
       onSuccess?.()
-    } catch (error) {
+      router.refresh()
+    } catch (error: unknown) {
       console.error("Submission error:", error)
-      toast.error("Failed to add room", {
-        description: "Please check your connection and try again",
+      toast.error("Failed to create room", {
+        description:  "Please check your connection and try again",
       })
     } finally {
       setIsLoading(false)
@@ -209,8 +211,8 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
   }
 
   return (
-    <Card className=" overflow-hidden max-h-[90vh] overflow-y-auto">
-      <CardHeader className="bg-muted/50">
+    <Card className="overflow-hidden max-h-[90vh] overflow-y-auto">
+      <CardHeader className="bg-muted/50 sticky top-0 z-10">
         <CardTitle className="text-xl font-semibold tracking-tight">
           Add New Room
         </CardTitle>
@@ -229,7 +231,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Room Title</FormLabel>
+                      <FormLabel>Room Title *</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Deluxe King Suite" 
@@ -247,7 +249,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   name="roomPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nightly Rate</FormLabel>
+                      <FormLabel>Nightly Rate *</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
@@ -269,7 +271,7 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>Description *</FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Describe the room's features, amenities, and unique qualities..."
@@ -288,14 +290,13 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
             {/* Room Image Section */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Room Image
+                Room Image *
               </h3>
               <FormField
                 control={form.control}
                 name="image"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Featured Image</FormLabel>
                     {field.value ? (
                       <div className="relative aspect-video rounded-lg overflow-hidden border">
                         <Image
@@ -475,24 +476,21 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
               <h3 className="text-sm font-medium text-muted-foreground">
                 Amenities
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="tv"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <Tv className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>TV</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="tv-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="tv-switch" className="flex items-center gap-2">
-                            <Tv className="size-4 text-muted-foreground" />
-                            <span>TV</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -501,19 +499,16 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   control={form.control}
                   name="wifi"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <Wifi className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>WiFi</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="wifi-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="wifi-switch" className="flex items-center gap-2">
-                            <Wifi className="size-4 text-muted-foreground" />
-                            <span>WiFi</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -522,19 +517,16 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   control={form.control}
                   name="airCondition"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <AirVent className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>Air Conditioning</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="ac-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="ac-switch" className="flex items-center gap-2">
-                            <AirVent className="size-4 text-muted-foreground" />
-                            <span>Air Conditioning</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -543,19 +535,16 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   control={form.control}
                   name="balcony"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <DoorOpen className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>Balcony</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="balcony-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="balcony-switch" className="flex items-center gap-2">
-                            <DoorOpen className="size-4 text-muted-foreground" />
-                            <span>Balcony</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -564,19 +553,16 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   control={form.control}
                   name="forestView"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <Trees className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>Forest View</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="forest-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="forest-switch" className="flex items-center gap-2">
-                            <Trees className="size-4 text-muted-foreground" />
-                            <span>Forest View</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -585,19 +571,16 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
                   control={form.control}
                   name="mountainView"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="flex items-center gap-3">
+                        <Mountain className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel>Mountain View</FormLabel>
+                      </div>
                       <FormControl>
-                        <div className="flex items-center space-x-3">
-                          <Switch
-                            id="mountain-switch"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                          <FormLabel htmlFor="mountain-switch" className="flex items-center gap-2">
-                            <Mountain className="size-4 text-muted-foreground" />
-                            <span>Mountain View</span>
-                          </FormLabel>
-                        </div>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
                     </FormItem>
                   )}
@@ -605,26 +588,28 @@ export const AddRoomForm = ({ hotelId, onSuccess }: AddRoomFormProps) => {
               </div>
             </div>
 
-            <Separator />
-
-            {/* Form Submission */}
-            <div className="flex justify-end gap-2">
+            {/* Form Actions */}
+            <div className="flex justify-end gap-2 pt-4 sticky bottom-0 bg-background pb-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => form.reset()}
+                onClick={() => {
+                  form.reset()
+                  onCancel?.()
+                }}
                 disabled={isLoading}
               >
-                Reset
+                Cancel
               </Button>
               <Button
-                type="submit"
-                disabled={isLoading || isUploading || imageIsDeleting}
+                type="button"
+                onClick={form.handleSubmit(onSubmit)}
+                disabled={isLoading || isUploading || imageIsDeleting || !form.formState.isDirty}
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Creating Room...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
                   </>
                 ) : (
                   "Create Room"
