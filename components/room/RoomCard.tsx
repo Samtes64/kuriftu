@@ -94,11 +94,11 @@ export const RoomCard = ({ room }: RoomCardProps) => {
       </CardContent>
       
       <CardFooter className="flex gap-2 pt-0">
-        <Button variant="outline" size="sm" className="flex-1" asChild>
-          <Link href={`/dashboard/rooms/${room.id}/edit`}>
-            Edit
-          </Link>
-        </Button>
+      <Button variant="outline" size="sm" className="flex-1" asChild>
+  <Link href={`/room/${room.id}/edit`}>
+    Edit
+  </Link>
+</Button>
         <Button size="sm" className="flex-1" asChild>
           <Link href={`/dashboard/rooms/${room.id}`}>
             View Details
