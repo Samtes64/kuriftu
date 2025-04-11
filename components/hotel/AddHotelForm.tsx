@@ -167,7 +167,7 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
       let response;
       if (hotel) {
         // UPDATE hotel
-        response = await axios.put(`/api/hotel`, { ...payload, id: hotel.id });
+        response = await axios.put(`/api/hotel/${hotel.id}`, payload);
 
       } else {
         // CREATE hotel
