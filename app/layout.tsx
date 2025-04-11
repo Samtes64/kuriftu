@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
 import Navbar from "@/components/navbar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Wrapper, WrapperWithQuery } from "@/components/wrapper";
 
 
 
@@ -28,13 +30,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+         <ThemeProvider attribute="class" defaultTheme="dark">
+					<Wrapper>
          <Navbar/>
-        {children}
-        <Toaster />
+						<WrapperWithQuery>{children}</WrapperWithQuery>
+					</Wrapper>
+					<Toaster />
+				</ThemeProvider>
       </body>
     </html>
   );
