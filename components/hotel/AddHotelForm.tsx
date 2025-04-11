@@ -20,9 +20,10 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import Image from "next/image"
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, UploadCloud, X } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
 import { supabase } from "@/lib/supabase"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null
@@ -31,6 +32,9 @@ interface AddHotelFormProps {
 export type HotelWithRooms = Hotel & {
   rooms: Room[]
 }
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
 
 const formSchema = z.object({
   userId: z.string(),
@@ -76,45 +80,68 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-  
+
+    // Client-side validation
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Invalid file type. Please upload a JPG, PNG, or WEBP image.")
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File size too large. Maximum 5MB allowed.")
+      return
+    }
+
     setIsUploading(true)
     try {
       const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}.${fileExt}`
+      const fileName = `${Math.random().toString(36).substring(2, 9)}_${Date.now()}.${fileExt}`
       const filePath = `hotels/${fileName}`
-  
+
       const { error: uploadError } = await supabase.storage
         .from("images")
-        .upload(filePath, file)
-  
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
       if (uploadError) throw uploadError
-  
-      const { data: publicUrlData } = supabase
-        .storage
+
+      const { data: { publicUrl } } = supabase.storage
         .from("images")
         .getPublicUrl(filePath)
-  
-      const imageUrl = publicUrlData?.publicUrl
-  
-      form.setValue("image", imageUrl || "")
+
+      form.setValue("image", publicUrl)
       toast.success("Image uploaded successfully")
     } catch (error) {
-      toast.error("Image upload failed")
       console.error(error)
+      toast.error("Image upload failed. Please try again.")
     } finally {
       setIsUploading(false)
     }
   }
 
   const handleImageDelete = async () => {
+    if (!form.getValues("image")) return
+    
     setImageIsDeleting(true)
     try {
-      // Add your image deletion logic here if needed
+      const imageUrl = form.getValues("image")
+      const imagePath = imageUrl.split('/').pop()?.split('?')[0] || ""
+      
+      if (imagePath) {
+        const { error } = await supabase.storage
+          .from("images")
+          .remove([`hotels/${imagePath}`])
+        
+        if (error) throw error
+      }
+      
       form.setValue("image", "")
       toast.success("Image removed successfully")
     } catch (error) {
-      toast.error("Image deletion failed")
       console.error(error)
+      toast.error("Image deletion failed")
     } finally {
       setImageIsDeleting(false)
     }
@@ -130,317 +157,285 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
     try {
       const payload = {
         ...values,
-        userId: session.user.id // Ensure we're using the current user's ID
+        userId: session.user.id
       }
-      console.log(payload)
 
+      console.log("Form payload:", payload) // For debugging
+
+      // Replace with your actual API calls
       if (hotel) {
-        // Update hotel logic
         // await updateHotel(hotel.id, payload)
         toast.success("Hotel updated successfully")
       } else {
-        // Create hotel logic
         // await createHotel(payload)
         toast.success("Hotel created successfully")
       }
+
+      // Optional: Redirect after successful submission
+      // window.location.href = '/dashboard/hotels'
     } catch (error) {
-      toast.error("An error occurred while saving the hotel")
       console.error(error)
+      toast.error("An error occurred while saving the hotel")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <h3 className="text-lg font-semibold">{hotel ? "Update Hotel" : "Add a New Hotel"}</h3>
-          
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1 space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hotel Title *</FormLabel>
-                    <FormDescription>Provide your hotel name</FormDescription>
-                    <FormControl>
-                      <Input placeholder="Grand Hyatt Hotel" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hotel Description *</FormLabel>
-                    <FormDescription>
-                      Provide a detailed description of your hotel
+    <div className="container max-w-6xl py-8">
+      <Card className="overflow-hidden">
+        <CardHeader className="border-b">
+          <CardTitle className="text-2xl font-bold">
+            {hotel ? "Update Hotel" : "Add New Hotel"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Hotel Title */}
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Hotel Title *</FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          The official name of your hotel
+                        </FormDescription>
+                        <FormControl>
+                          <Input 
+                            placeholder="Grand Hyatt Hotel" 
+                            {...field} 
+                            className="mt-1"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Hotel Description */}
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Description *</FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Describe your hotel&apos;s unique features and atmosphere
+                        </FormDescription>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Located in the heart of the city with stunning views..."
+                            {...field}
+                            className="mt-1 min-h-[120px]"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Amenities */}
+                  <div>
+                    <FormLabel className="text-sm font-medium">Amenities</FormLabel>
+                    <FormDescription className="text-xs text-muted-foreground mb-3">
+                      Select amenities available at your property
                     </FormDescription>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Located in the heart of the city with stunning views..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div>
-                <FormLabel>Choose Amenities</FormLabel>
-                <FormDescription>Select amenities available at your property</FormDescription>
-                <div className="grid grid-cols-2 gap-4 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { name: "gym", label: "Gym" },
+                        { name: "spa", label: "Spa" },
+                        { name: "swimmingPool", label: "Swimming Pool" },
+                        { name: "restaurant", label: "Restaurant" },
+                        { name: "bar", label: "Bar" },
+                        { name: "shopping", label: "Shopping" },
+                      ].map((amenity) => (
+                        <FormField
+                          key={amenity.name}
+                          control={form.control}
+                          name={amenity.name as keyof typeof formSchema.shape}
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value as boolean}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm font-normal">
+                                {amenity.label}
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Hotel Image */}
                   <FormField
                     control={form.control}
-                    name="gym"
+                    name="image"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Gym</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Featured Image *</FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Upload a high-quality image that represents your hotel
+                        </FormDescription>
+                        {field.value ? (
+                          <div className="relative mt-2 rounded-lg overflow-hidden border">
+                            <div className="aspect-video bg-muted/50 flex items-center justify-center">
+                              <Image
+                                src={field.value}
+                                alt="Hotel preview"
+                                width={600}
+                                height={400}
+                                className="object-cover w-full h-full"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="destructive"
+                              className="absolute top-2 right-2"
+                              onClick={handleImageDelete}
+                              disabled={imageIsDeleting}
+                            >
+                              {imageIsDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="mt-2">
+                            <label
+                              htmlFor="image-upload"
+                              className="group relative flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary transition-colors cursor-pointer"
+                            >
+                              <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                                <UploadCloud className="h-10 w-10 text-muted-foreground mb-3 group-hover:text-primary transition-colors" />
+                                <p className="mb-2 text-sm text-muted-foreground">
+                                  <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  JPG, PNG, or WEBP (Max. 5MB)
+                                </p>
+                              </div>
+                              <input
+                                id="image-upload"
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageUpload}
+                                disabled={isUploading}
+                              />
+                            </label>
+                            {isUploading && (
+                              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Uploading image...
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
+
+                  {/* Location Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">City *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="New York" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="subCity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-medium">Sub-City *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Manhattan" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Location Description */}
                   <FormField
                     control={form.control}
-                    name="spa"
+                    name="locationDescription"
                     render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Spa</FormLabel>
-                        </div>
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Location Details *</FormLabel>
+                        <FormDescription className="text-xs text-muted-foreground">
+                          Describe the neighborhood and nearby attractions
+                        </FormDescription>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
+                          <Textarea
+                            placeholder="Located on 5th Avenue, just 2 blocks from Central Park..."
+                            {...field}
+                            className="min-h-[100px]"
                           />
                         </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="swimmingPool"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Swimming Pool</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="restaurant"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Restaurant</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="bar"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Bar</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="shopping"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>Shopping</FormLabel>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
                 </div>
               </div>
-            </div>
-            
-            <div className="flex-1 space-y-6">
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hotel Image *</FormLabel>
-                    <FormDescription>Upload a featured image for your hotel</FormDescription>
-                    {field.value ? (
-                      <div className="relative max-w-[400px] min-w-[200px] max-h-[400px] min-h-[200px] mt-4">
-                        <Image
-                          src={field.value}
-                          alt="Hotel Image"
-                          width={400}
-                          height={400}
-                          className="object-contain rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="absolute right-[-12px] top-0"
-                          onClick={() => handleImageDelete()}
-                          disabled={imageIsDeleting}
-                        >
-                          {imageIsDeleting ? <Loader2 className="animate-spin" /> : "✕"}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div  className="flex flex-col items-center max-w-[400px] p-12 border-2 border-dashed border-primary/50 rounded mt-4">
-                        <input
-                          type="file"
-                          id="image-upload"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                          disabled={isUploading}
-                        />
-                        <label htmlFor="image-upload" className="text-blue-500">click here to select image</label>
-                        <label htmlFor="image-upload" className="cursor-pointer">
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            disabled={isUploading}
-                          >
-                            {isUploading ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              "Upload Image"
-                            )}
-                          </Button>
-                        </label>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          JPG, PNG, or WEBP (Max 5MB)
-                        </p>
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="New York" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="subCity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sub-City *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Manhattan" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="locationDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location Description *</FormLabel>
-                    <FormDescription>
-                      Provide detailed information about the location
-                    </FormDescription>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Located on 5th Avenue, just 2 blocks from Central Park..."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end gap-2 mt-4">
-                <Button 
-                  type="button" 
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
                   variant="outline"
                   onClick={() => window.history.back()}
+                  disabled={isLoading}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isLoading || !session?.user?.id}>
+                <Button
+                  type="submit"
+                  disabled={isLoading || !session?.user?.id || isUploading}
+                >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      Processing...
                     </>
+                  ) : hotel ? (
+                    "Update Hotel"
                   ) : (
-                    hotel ? "Update Hotel" : "Save Hotel"
+                    "Create Hotel"
                   )}
                 </Button>
               </div>
-            </div>
-          </div>
-        </form>
-      </Form>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }
