@@ -1,7 +1,6 @@
-
 generator client {
   provider = "prisma-client-js"
-
+  output   = "app/generated/prisma/client"
 }
 
 datasource db {
@@ -19,6 +18,8 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  hotel         Hotel[]
+  booking       Booking[]
 
   @@unique([email])
   @@map("user")
@@ -67,4 +68,77 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+model Hotel {
+  id                  String    @id @default(uuid())
+  userId              String
+  title               String    @db.Text
+  description         String    @db.LongText
+  image               String
+  city                String
+  subCity             String
+  locationDescription String    @db.LongText
+  gym                 Boolean   @default(false)
+  spa                 Boolean   @default(false)
+  bar                 Boolean   @default(false)
+  restaurant          Boolean   @default(false)
+  shopping            Boolean   @default(false)
+  swimmingPool        Boolean   @default(false)
+  addedAt             DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
+  rooms               Room[]
+  bookings            Booking[]
+
+  User User? @relation(fields: [userId], references: [id])
+
+  @@fulltext([title])
+}
+
+model Room {
+  id             String  @id @default(uuid())
+  title          String  @db.Text
+  description    String  @db.LongText
+  bedCount       Int     @default(0)
+  bathroomCount  Int     @default(0)
+  kingBed        Int     @default(0)
+  normalBed      Int     @default(0)
+  image          String
+  breakfastPrice Int
+  roomPrice      Int
+  tv             Boolean @default(false)
+  balcony        Boolean @default(false)
+  wifi           Boolean @default(false)
+  forestView     Boolean @default(false)
+  mountainView   Boolean @default(false)
+  airCondition   Boolean @default(false)
+  hotelId        String
+
+  Hotel Hotel? @relation(fields: [hotelId], references: [id])
+
+  Booking Booking[]
+
+  @@index([hotelId])
+}
+
+model Booking {
+  id                String   @id @default(uuid())
+  userId            String
+  startDate         DateTime
+  endDate           DateTime
+  breakfastIncluded Boolean
+  currency          String
+  totalPrice        Int
+  isPayed           Boolean  @default(false)
+  paymentIntentId   String   @unique
+  bookedAt          DateTime @default(now())
+
+  Hotel   Hotel?  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+  hotelId String?
+  Room    Room?   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId  String?
+  User    User?   @relation(fields: [userId], references: [id])
+
+  @@index([hotelId])
+  @@index([roomId])
 }
