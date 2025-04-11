@@ -1,28 +1,32 @@
+'use client' // Add this at the top since we're using useRouter
+
 import { Hotel } from "@prisma/client"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
   Star, 
   MapPin, 
-   
   Dumbbell, 
   Wine, 
   ShoppingBag, 
   Utensils, 
   Waves,
-  ShowerHead, 
-   
+  ShowerHead,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
 
 interface HotelCardProps {
   hotel: Hotel & { rooms: { roomPrice: number }[] }
+  showEditButton?: boolean // Optional prop to show edit button
 }
 
-export function HotelCard({ hotel }: HotelCardProps) {
+export function HotelCard({ hotel, showEditButton = false }: HotelCardProps) {
+  const router = useRouter()
+
   // Calculate price range
   const prices = hotel.rooms.map(room => room.roomPrice)
   const minPrice = Math.min(...prices)
@@ -38,8 +42,14 @@ export function HotelCard({ hotel }: HotelCardProps) {
     { name: "Pool", icon: Waves, active: hotel.swimmingPool }
   ].filter(a => a.active)
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    router.push(`/hotel/${hotel.id}`)
+  }
+
   return (
-    <Card className="group overflow-hidden transition-all duration-300  border-border/30">
+    <Card className="group overflow-hidden transition-all duration-300 border-border/30">
       {/* Image with overlay */}
       <div className="relative">
         <AspectRatio ratio={16/9}>
@@ -49,6 +59,7 @@ export function HotelCard({ hotel }: HotelCardProps) {
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            priority
           />
         </AspectRatio>
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
@@ -104,7 +115,7 @@ export function HotelCard({ hotel }: HotelCardProps) {
                 <Badge 
                   key={amenity.name}
                   variant="outline"
-                  className="gap-1.5 px-3 py-1.5 rounded-full border-border/50 bg-background/50 backdrop-blur-sm"
+                  className="gap-1.5 px-3 py-1.5 rounded-full border-border/50 bg-background/50 backdrop-blur-sm hover:bg-primary/10"
                 >
                   <amenity.icon className="h-4 w-4 text-primary" />
                   <span className="text-xs">{amenity.name}</span>
@@ -115,13 +126,23 @@ export function HotelCard({ hotel }: HotelCardProps) {
         )}
       </CardContent>
 
-      {/* Footer with action button */}
-      <CardFooter className="p-4 pt-0">
+      {/* Footer with action buttons */}
+      <CardFooter className="p-4 pt-0 grid gap-3">
         <Button asChild className="w-full" size="lg">
           <Link href={`/hotels/${hotel.id}`}>
             View Availability
           </Link>
         </Button>
+        
+        {showEditButton && (
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={handleEdit}
+          >
+            Edit Hotel
+          </Button>
+        )}
       </CardFooter>
     </Card>
   )
