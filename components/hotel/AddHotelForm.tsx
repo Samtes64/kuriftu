@@ -20,13 +20,16 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import Image from "next/image"
 import { useState } from "react"
-import { Loader2, UploadCloud, X } from "lucide-react"
+import { Eye, Loader2, Plus, Trash2, UploadCloud, X } from "lucide-react"
 import { useSession } from "@/lib/auth-client"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import axios from "axios";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog"
 import { Hotel, Room } from "@/prisma/app/generated/prisma/client"
+import { ViewHotelModal } from "./VIewHotelModal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
+import { AddRoomForm } from "../room/AddRoomForm"
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null
@@ -432,58 +435,121 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.history.back()}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading || !session?.user?.id || isUploading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : hotel ? (
-                    "Update Hotel"
-                  ) : (
-                    "Create Hotel"
-                  )}
-                </Button>
-                {hotel && (
-  <AlertDialog>
-    <AlertDialogTrigger asChild>
-      <Button type="button" variant="destructive" disabled={isLoading}>
-        Delete
+            
+              <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch gap-3 pt-4 border-t">
+  {/* Left-aligned buttons (mobile: bottom) */}
+  <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+    {hotel && (
+      <div className="flex flex-row gap-2">
+        <ViewHotelModal hotel={hotel}>
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex-1 sm:flex-none"
+          >
+            <span className="sr-only sm:not-sr-only">View</span>
+            <Eye className="sm:mr-2 h-4 w-4" />
+          </Button>
+        </ViewHotelModal>
+        
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <span className="sr-only sm:not-sr-only">Add Room</span>
+              <Plus className="sm:mr-2 h-4 w-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[95vw] sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Add Room to {hotel.title}</DialogTitle>
+            </DialogHeader>
+            <AddRoomForm hotelId={hotel.id} />
+          </DialogContent>
+        </Dialog>
+      </div>
+    )}
+  </div>
+
+  {/* Right-aligned buttons (mobile: top) */}
+  <div className="flex flex-col-reverse xs:flex-row gap-2 justify-end">
+    {/* Delete Button */}
+    {hotel && (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button 
+            type="button" 
+            variant="destructive" 
+            size="sm"
+            disabled={isLoading}
+            className="flex-1 sm:flex-none"
+          >
+            <span className="sr-only xs:not-sr-only">Delete</span>
+            <Trash2 className="xs:mr-2 h-4 w-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="max-w-[95vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="text-pretty">
+              This will permanently delete {hotel.title} and all associated rooms.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDeleteHotel(hotel.id)}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )}
+
+    {/* Cancel/Submit Buttons */}
+    <div className="flex gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => window.history.back()}
+        disabled={isLoading}
+        className="flex-1 xs:flex-none"
+      >
+        Cancel
       </Button>
-    </AlertDialogTrigger>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-        <AlertDialogDescription>
-          This action cannot be undone. This will permanently delete this hotel from your database.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          onClick={() => handleDeleteHotel(hotel.id)}
-          disabled={isLoading}
-        >
-          Confirm Delete
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-)}
-              </div>
+      
+      <Button
+        type="submit"
+        size="sm"
+        disabled={isLoading || !session?.user?.id || isUploading}
+        className="flex-1 xs:flex-none"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <span className="sr-only xs:not-sr-only">
+              {hotel ? "Updating..." : "Creating..."}
+            </span>
+          </>
+        ) : hotel ? (
+          "Update Hotel"
+        ) : (
+          "Create Hotel"
+        )}
+      </Button>
+    </div>
+  </div>
+</div>
             </form>
           </Form>
         </CardContent>
