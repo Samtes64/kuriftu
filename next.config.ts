@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   future: {
     webpack5: true,
   },
+
+  images: {
+    domains: ['ujprsivpzetlejitztzk.supabase.co'], // ✅ Add your Supabase project domain here
+  },
   
 };
 

@@ -1,3 +1,4 @@
+import { getHotelById } from '@/actions/getHotelById'
 import AddHotelForm from '@/components/hotel/AddHotelForm'
 import React from 'react'
 
@@ -7,11 +8,13 @@ interface HotelPageProps{
     }
 }
 
-const Hotel = ({params}:HotelPageProps) => {
-    console.log('hotelId',params.hotelId)
+const Hotel = async ({params}:HotelPageProps) => {
+  const hotel = await getHotelById(params.hotelId)
+
+
   return (
     <div>
-      <AddHotelForm/>
+      <AddHotelForm hotel={hotel} />
     </div>
   )
 }
