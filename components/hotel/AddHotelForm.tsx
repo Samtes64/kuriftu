@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Hotel, Room } from "@prisma/client"
+
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,8 @@ import { useSession } from "@/lib/auth-client"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import axios from "axios";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog"
+import { Hotel, Room } from "@/prisma/app/generated/prisma/client"
 
 interface AddHotelFormProps {
   hotel: HotelWithRooms | null
@@ -187,6 +189,18 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
       toast.error(message);
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleDeleteHotel(hotelId: string) {
+    try {
+      await axios.delete(`/api/hotel/${hotelId}`);
+      toast.success("Hotel deleted successfully");
+      // router.push("/dashboard/hotels");
+    } catch (error) {
+      console.error("Delete error:", error);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error((error as any).response?.data || "Failed to delete hotel");
     }
   }
 
@@ -442,6 +456,33 @@ const AddHotelForm = ({ hotel }: AddHotelFormProps) => {
                     "Create Hotel"
                   )}
                 </Button>
+                {hotel && (
+  <AlertDialog>
+    <AlertDialogTrigger asChild>
+      <Button type="button" variant="destructive" disabled={isLoading}>
+        Delete
+      </Button>
+    </AlertDialogTrigger>
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+        <AlertDialogDescription>
+          This action cannot be undone. This will permanently delete this hotel from your database.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          onClick={() => handleDeleteHotel(hotel.id)}
+          disabled={isLoading}
+        >
+          Confirm Delete
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
+)}
               </div>
             </form>
           </Form>

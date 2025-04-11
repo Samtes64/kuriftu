@@ -26,3 +26,24 @@ export async function PUT(req: Request, { params }: { params: { hotelId: string 
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, { params }: { params: { hotelId: string } }) {
+    try {
+      const session = await auth.api.getSession({ headers: req.headers });
+  
+      if (!session?.user?.id) {
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+  
+      const deletedHotel = await prisma.hotel.delete({
+        where: {
+          id: params.hotelId,
+        },
+      });
+  
+      return NextResponse.json({ message: "Hotel deleted successfully", hotel: deletedHotel });
+    } catch (error) {
+      console.error("Error deleting hotel:", error);
+      return new NextResponse("Internal Server Error", { status: 500 });
+    }
+  }
