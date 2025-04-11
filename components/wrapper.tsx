@@ -8,7 +8,7 @@ export function Wrapper(props: { children: React.ReactNode }) {
 	return (
 		<div className="min-h-screen w-full dark:bg-black bg-white  dark:bg-grid-small-white/[0.2] bg-grid-small-black/[0.2] relative flex justify-center">
 			
-			<div className=" lg:w-7/12 w-full">{props.children}</div>
+			<div className="lg:w-7/12 w-full">{props.children}</div>
 		</div>
 	);
 }
