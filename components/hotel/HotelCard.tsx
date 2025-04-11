@@ -49,6 +49,7 @@ export function HotelCard({ hotel, showEditButton = false }: HotelCardProps) {
   }
 
   return (
+    <Link href={`/hotel-details/${hotel.id}`} className="block">
     <Card className="group overflow-hidden transition-all duration-300 border-border/30">
       {/* Image with overlay */}
       <div className="relative">
@@ -129,9 +130,9 @@ export function HotelCard({ hotel, showEditButton = false }: HotelCardProps) {
       {/* Footer with action buttons */}
       <CardFooter className="p-4 pt-0 grid gap-3">
         <Button asChild className="w-full" size="lg">
-          <Link href={`/hotels/${hotel.id}`}>
+          {/* <Link href={`/hotels/${hotel.id}`}> */}
             View Availability
-          </Link>
+          {/* </Link> */}
         </Button>
         
         {showEditButton && (
@@ -145,5 +146,6 @@ export function HotelCard({ hotel, showEditButton = false }: HotelCardProps) {
         )}
       </CardFooter>
     </Card>
+    </Link>
   )
 }
