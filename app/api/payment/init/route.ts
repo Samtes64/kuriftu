@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       currency: 'ETB',
       
      
-      tx_ref: reference + Date.now().toLocaleString() + 'lkjhgf',
+      tx_ref: reference ,
       callback_url: `${process.env.NEXT_PUBLIC_URL}/api/payment/verify`,
       return_url: `${process.env.NEXT_PUBLIC_URL}/booking/confirmation`,
       customization: {
@@ -43,11 +43,11 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: 'success',
       data: {
-        checkout_url: response.data.checkout_url
+        checkout_url: response.data?.checkout_url
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.log('error')
     console.dir(error)
     return NextResponse.json(

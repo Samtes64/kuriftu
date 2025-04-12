@@ -44,15 +44,16 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
     return roomTotal + breakfastTotal
   }
   const [isLoading, setIsLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState(false);
 
   const handlePayment = async (room: Room) => {
     setIsLoading(true);
-    setError(null);
+    setError(false);
   
     try {
       // 1. Generate unique reference
-      const reference = `booking-${room.id}-${Date.now()}`;
+      const reference = `${Date.now()}`;
       
       // 2. Call payment API
       const res = await fetch('/api/payment/init', {
@@ -60,7 +61,7 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: calculateTotalPrice(room),
-          email: 'test@example.com', // Replace with real email
+          email: 'test@email.com', // Replace with real email
           reference,
         }),
       });
@@ -78,7 +79,12 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
   
     } catch (err) {
       console.error('Payment error:', err);
-      setError(err instanceof Error ? err.message : 'Payment failed');
+      setError(true);
+      if (err instanceof Error) {
+        console.error(err.message);
+      } else {
+        console.error('Payment failed');
+      }
     } finally {
       setIsLoading(false);
     }
