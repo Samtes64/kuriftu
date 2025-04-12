@@ -9,7 +9,7 @@ export const auth = betterAuth({
     enabled: true
 },
     database: prismaAdapter(prisma, {
-        provider: "mysql",
+        provider: "postgresql",
     }),
     plugins: [nextCookies()]
 });
