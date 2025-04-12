@@ -8,8 +8,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TierName {
+  Gold
+  Silver
+  Platinum
+}
+
+model MembershipTier {
+  id          String   @id @default(uuid())
+  name        TierName @unique
+  description String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+
+  @@map("membership_tier")
+}
+
+enum PointTransactionType {
+  Earn
+  Redeem
+}
+
+model PointTransaction {
+  id              String   @id @default(uuid())
+  userId          String
+  points          Int
+  type            PointTransactionType
+  referenceType   String?  // 'booking', 'service', 'promo'
+  referenceId     String?
+  expiresAt       DateTime?
+  transactionId String? @unique
+  transaction     Transaction? @relation(fields: [transactionId], references: [id])
+  createdAt       DateTime @default(now())
+
+  User User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("point_transaction")
+}
+
+model Transaction {
+  id         String   @id @default(uuid())
+  userId      String
+  txRef String @unique
+  amount Decimal @db.Money
+  createdAt   DateTime @default(now())
+
+  User User? @relation(fields: [userId], references: [id])
+  pointTransaction PointTransaction?
+  @@index([userId])
+  @@map("transaction")
+}
+
 model User {
   id            String    @id
+  tierId        String?
+  tier          MembershipTier? @relation(fields: [tierId], references: [id], onDelete: Cascade)
   name          String    @db.Text
   email         String
   emailVerified Boolean
@@ -20,6 +77,8 @@ model User {
   accounts      Account[]
   hotel         Hotel[]
   booking       Booking[]
+  pointTransactions PointTransaction[]
+  transactions  Transaction[]
 
   @@unique([email])
   @@map("user")
