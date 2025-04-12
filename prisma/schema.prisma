@@ -201,3 +201,6 @@ model Booking {
   @@index([hotelId])
   @@index([roomId])
 }
+
+
+model
