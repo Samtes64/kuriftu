@@ -6,9 +6,12 @@ export async function middleware(request: NextRequest) {
 	if (!cookies) {
 		return NextResponse.redirect(new URL("/", request.url));
 	}
+	if (request.url.includes('/sign-in')) {
+		return NextResponse.redirect(new URL("/dashboard", request.url));
+	}
 	return NextResponse.next();
 }
 
 export const config = {
-	matcher: ['/dashboard/:path*', '/hotel/:path*'],
+	matcher: ['/dashboard/:path*', '/hotel/:path*', '/sign-in'],
 };

@@ -15,12 +15,15 @@ import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { useRouter } from 'next/navigation'
 
 export function RoomSuites({ rooms }: { rooms: Room[] }) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
     to: addDays(new Date(), 1),
   })
+
+  const router = useRouter();
 
   const [breakfastSelections, setBreakfastSelections] = useState<Record<string, boolean>>({})
 
@@ -44,77 +47,46 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
     return roomTotal + breakfastTotal
   }
   const [isLoading, setIsLoading] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState(false);
 
- const handlePayment = async (room: Room) => {
-  setIsLoading(true);
-  setError(false);
+  const handlePayment = async (room: Room) => {
+    setIsLoading(true);
+    setError(null);
+  
+    try {
+      // 1. Generate unique reference
+      const reference = `booking-${room.id}-${Date.now()}`;
+      
+      // 2. Call payment API
+      const res = await fetch('/api/payment/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: calculateTotalPrice(room),
+          email: 'test@example.com', // Replace with real email
+          reference,
+        }),
+      });
+  
+      const data = await res.json();
 
-  try {
-    // Validate dates
-    if (!dateRange?.from || !dateRange?.to) {
-      throw new Error('Please select check-in and check-out dates');
+      if (!res.ok) {
+        // throw new Error(data.message || 'Payment failed');
+        router.push('/sign-in');
+      }
+
+      // 3. Redirect to payment page
+      if (data.data?.checkout_url) {
+        window.location.href = data.data.checkout_url;
+      }
+  
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setIsLoading(false);
     }
-
-    // 1. Generate unique reference
-    const reference = `${Date.now()}`;
-    const totalPrice = calculateTotalPrice(room);
-    
-    // 2. Create booking first (you might want to adjust this based on your payment flow)
-    const bookingResponse = await fetch('/api/bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        roomId: room.id,
-        hotelId: room.hotelId,
-        checkIn: dateRange.from.toISOString(),
-        checkOut: dateRange.to.toISOString(),
-        totalPrice: totalPrice,
-        includesBreakfast: breakfastSelections[room.id] || false
-      }),
-    });
-
-    if (!bookingResponse.ok) {
-      const errorData = await bookingResponse.json();
-      throw new Error(errorData.error || 'Booking creation failed');
-    }
-
-    // 3. Initialize payment
-    const paymentResponse = await fetch('/api/payment/init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: totalPrice,
-        email: 'test@email.com', // Replace with real user email
-        reference: reference,
-      }),
-    });
-
-    const paymentData = await paymentResponse.json();
-    
-    if (!paymentResponse.ok) {
-      throw new Error(paymentData.message || 'Payment initialization failed');
-    }
-
-    // 4. Redirect to payment page
-    if (paymentData.data?.checkout_url) {
-      window.location.href = paymentData.data.checkout_url;
-    }
-
-  } catch (err) {
-    console.error('Payment error:', err);
-    setError(true);
-    // You might want to show a toast notification here
-    if (err instanceof Error) {
-      console.error(err.message);
-    } else {
-      console.error('Payment failed');
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <Card className="border-none shadow-sm">
