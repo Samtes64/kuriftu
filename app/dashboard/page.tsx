@@ -1,14 +1,13 @@
 import ClientComponent from "@/components/client-component";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import PayTestButton from "../pay-test.button";
 
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
     headers: await headers()
   });
-
- 
 
   const user = session?.user;
   return (
@@ -19,6 +18,7 @@ export default async function DashboardPage() {
         <li>Email: {user?.email}</li>
       </ul>
       <ClientComponent />
+      <PayTestButton />
     </div>
   );
 }
