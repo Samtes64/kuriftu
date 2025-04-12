@@ -62,7 +62,7 @@ export class MembershipService {
       const aPoints = a.pointTransactions.reduce((acc, curr) => acc + curr.points, 0);
       const bPoints = b.pointTransactions.reduce((acc, curr) => acc + curr.points, 0);
       return bPoints - aPoints;
-    }).slice(0, 3).map((user) => ({
+    }).map((user) => ({
       id: user.id,
       name: user.name,
       email: user.email,

@@ -222,70 +222,14 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+};
+
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
-};
-
-exports.Prisma.UserOrderByRelevanceFieldEnum = {
-  id: 'id',
-  name: 'name',
-  email: 'email',
-  image: 'image'
-};
-
-exports.Prisma.SessionOrderByRelevanceFieldEnum = {
-  id: 'id',
-  token: 'token',
-  ipAddress: 'ipAddress',
-  userAgent: 'userAgent',
-  userId: 'userId'
-};
-
-exports.Prisma.AccountOrderByRelevanceFieldEnum = {
-  id: 'id',
-  accountId: 'accountId',
-  providerId: 'providerId',
-  userId: 'userId',
-  accessToken: 'accessToken',
-  refreshToken: 'refreshToken',
-  idToken: 'idToken',
-  scope: 'scope',
-  password: 'password'
-};
-
-exports.Prisma.VerificationOrderByRelevanceFieldEnum = {
-  id: 'id',
-  identifier: 'identifier',
-  value: 'value'
-};
-
-exports.Prisma.HotelOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  title: 'title',
-  description: 'description',
-  image: 'image',
-  city: 'city',
-  subCity: 'subCity',
-  locationDescription: 'locationDescription'
-};
-
-exports.Prisma.RoomOrderByRelevanceFieldEnum = {
-  id: 'id',
-  title: 'title',
-  description: 'description',
-  image: 'image',
-  hotelId: 'hotelId'
-};
-
-exports.Prisma.BookingOrderByRelevanceFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  currency: 'currency',
-  paymentIntentId: 'paymentIntentId',
-  hotelId: 'hotelId',
-  roomId: 'roomId'
 };
 
 

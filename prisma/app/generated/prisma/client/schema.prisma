@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgres"
   url      = env("DATABASE_URL")
 }
 
@@ -74,11 +74,11 @@ model Hotel {
   id                  String    @id @default(uuid())
   userId              String
   title               String    @db.Text
-  description         String    @db.LongText
+  description         String    @db.VarChar()
   image               String
   city                String
   subCity             String
-  locationDescription String    @db.LongText
+  locationDescription String    @db.Text
   gym                 Boolean   @default(false)
   spa                 Boolean   @default(false)
   bar                 Boolean   @default(false)
@@ -92,13 +92,13 @@ model Hotel {
 
   User User? @relation(fields: [userId], references: [id])
 
-  @@fulltext([title])
+  @@index([title])
 }
 
 model Room {
   id             String  @id @default(uuid())
   title          String  @db.Text
-  description    String  @db.LongText
+  description    String  @db.Text
   bedCount       Int     @default(0)
   bathroomCount  Int     @default(0)
   kingBed        Int     @default(0)

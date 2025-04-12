@@ -93,6 +93,11 @@ export default function Navbar() {
                     Add Hotel
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/bookedrooms" className="w-full">
+                    Booked Rooms
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleSignOut}
