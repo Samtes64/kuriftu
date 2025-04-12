@@ -1,5 +1,5 @@
 import ClientComponent from "@/components/client-component";
-import PayTestButton from "@/components/PayTestButton";
+
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
         <li>Name: {user?.name}</li>
         <li>Email: {user?.email}</li>
       </ul>
-      <PayTestButton/>
+      
       <ClientComponent />
     </div>
   );

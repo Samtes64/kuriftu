@@ -1,16 +1,29 @@
 // app/api/payment/init/route.ts
+import { auth } from '@/lib/auth';
 import { Chapa } from 'chapa-nodejs';
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
+
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    const userId = session?.user?.id;
+    const email =  session?.user?.email;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
+    
     // Validate environment
     if (!process.env.CHAPA_SECRET_KEY) {
       throw new Error('Payment provider not configured');
     }
 
     // Validate input
-    const { amount, email, reference } = await req.json();
+    const { amount, reference } = await req.json();
     if (!amount || !email || !reference) {
       throw new Error('Missing required fields');
     }
@@ -31,7 +44,7 @@ export async function POST(req: Request) {
      
       tx_ref: reference ,
       callback_url: `${process.env.NEXT_PUBLIC_URL}/api/payment/verify`,
-      return_url: `${process.env.NEXT_PUBLIC_URL}/booking/confirmation`,
+      return_url: `${process.env.NEXT_PUBLIC_URL}`,
       customization: {
         title: 'Booking Payment',
         description: `Payment for booking ${reference}`,
