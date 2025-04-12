@@ -2,6 +2,9 @@
 import { auth } from '@/lib/auth';
 import { Chapa } from 'chapa-nodejs';
 import { NextResponse } from 'next/server';
+// import { auth } from "@/lib/auth";
+// import { getUserId } from '@/lib/helpers/auth.helpers';
+import { MembershipService } from '@/lib/services/membership.service';
 
 export async function POST(req: Request) {
   try {
@@ -51,7 +54,27 @@ export async function POST(req: Request) {
       },
     });
 
-    console.log(response)
+    console.log(response);
+
+    if (response.status !== 'success') {
+      throw new Error('Payment initialization failed');
+    }
+
+//  const session = await auth.api.getSession({
+//       headers: req.headers,
+//     });
+
+//     const userId = session?.user?.id;
+//     if (!userId) {
+//       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+//     }
+
+   
+    if (userId) {
+      const membershipService = new MembershipService();
+      // await membershipService.testEndPoint();
+      await membershipService.createTransaction(userId, reference, amount);
+    }
 
     return NextResponse.json({
       status: 'success',
@@ -62,7 +85,8 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.log('error')
-    console.dir(error)
+    // console.error('Chapa error:', JSON.stringify(error, null, 2));
+    // console.dir(error)
     return NextResponse.json(
       { status: 'error', message: error },
       { status: 400 }
