@@ -84,3 +84,46 @@ export async function POST(req: Request) {
     )
   }
 }
+
+
+
+export async function GET(req: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      include: {
+        Room: {
+          select: {
+            title: true,
+            image: true,
+          },
+        },
+        Hotel: true
+      },
+      orderBy: {
+        bookedAt: 'desc',
+      },
+    });
+
+    return NextResponse.json(bookings);
+  } catch (error) {
+    console.error('[BOOKINGS_GET]', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

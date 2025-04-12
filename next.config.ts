@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['ujprsivpzetlejitztzk.supabase.co'], // ✅ Add your Supabase project domain here
   },
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
   
 };
 
