@@ -43,6 +43,46 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
     const breakfastTotal = breakfastSelections[room.id] ? nights * room.breakfastPrice : 0
     return roomTotal + breakfastTotal
   }
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const handlePayment = async (room: Room) => {
+    setIsLoading(true);
+    setError(null);
+  
+    try {
+      // 1. Generate unique reference
+      const reference = `booking-${room.id}-${Date.now()}`;
+      
+      // 2. Call payment API
+      const res = await fetch('/api/payment/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: calculateTotalPrice(room),
+          email: 'test@example.com', // Replace with real email
+          reference,
+        }),
+      });
+  
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || 'Payment failed');
+      }
+  
+      // 3. Redirect to payment page
+      if (data.data?.checkout_url) {
+        window.location.href = data.data.checkout_url;
+      }
+  
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError(err instanceof Error ? err.message : 'Payment failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <Card className="border-none shadow-sm">
@@ -199,9 +239,12 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
                     </div>
                   </div>
 
-                  <Button className="sm:w-auto w-full">
-                    Book Now
-                  </Button>
+                   <Button 
+      onClick={() => handlePayment(room)}
+      disabled={isLoading}
+    >
+      {isLoading ? 'Processing...' : 'Book Now'}
+    </Button>
                 </div>
               </div>
             </div>

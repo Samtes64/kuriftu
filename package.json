@@ -33,6 +33,8 @@
     "@tanstack/react-query": "^5.72.2",
     "axios": "^1.8.4",
     "better-auth": "^1.2.5",
+    "chapa": "^1.0.5",
+    "chapa-nodejs": "^2.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
