@@ -1,19 +1,32 @@
 // app/api/payment/init/route.ts
+import { auth } from '@/lib/auth';
 import { Chapa } from 'chapa-nodejs';
 import { NextResponse } from 'next/server';
 // import { auth } from "@/lib/auth";
-import { getUserId } from '@/lib/helpers/auth.helpers';
+// import { getUserId } from '@/lib/helpers/auth.helpers';
 import { MembershipService } from '@/lib/services/membership.service';
 
 export async function POST(req: Request) {
   try {
+
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    const userId = session?.user?.id;
+    const email =  session?.user?.email;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
+    
     // Validate environment
     if (!process.env.CHAPA_SECRET_KEY) {
       throw new Error('Payment provider not configured');
     }
 
     // Validate input
-    const { amount, email, reference } = await req.json();
+    const { amount, reference } = await req.json();
     if (!amount || !email || !reference) {
       throw new Error('Missing required fields');
     }
@@ -30,13 +43,11 @@ export async function POST(req: Request) {
     const response = await chapa.initialize({
       amount: amount.toString(),
       currency: 'ETB',
-      email: 'me@email.com',
-      phone_number: '0900123456',
-      first_name: 'John',
-      last_name: 'Doe',
-      tx_ref: reference,
+      
+     
+      tx_ref: reference ,
       callback_url: `${process.env.NEXT_PUBLIC_URL}/api/payment/verify`,
-      return_url: `${process.env.NEXT_PUBLIC_URL}/booking/confirmation`,
+      return_url: `${process.env.NEXT_PUBLIC_URL}`,
       customization: {
         title: 'Booking Payment',
         description: `Payment for booking ${reference}`,
@@ -58,8 +69,7 @@ export async function POST(req: Request) {
 //       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 //     }
 
-    const userId = await getUserId(req);
-    // console.log('user id', userId);
+   
     if (userId) {
       const membershipService = new MembershipService();
       // await membershipService.testEndPoint();
@@ -69,12 +79,11 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: 'success',
       data: {
-        checkout_url: response.data!.checkout_url
+        checkout_url: response.data?.checkout_url
       }
     });
 
-  // eslint-disable-next-line
-  } catch (error: any) {
+  } catch (error) {
     console.log('error')
     // console.error('Chapa error:', JSON.stringify(error, null, 2));
     // console.dir(error)
