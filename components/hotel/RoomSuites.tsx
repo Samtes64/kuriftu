@@ -46,6 +46,7 @@ export function RoomSuites({ rooms }: { rooms: Room[] }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
 
+  console.log(error);
   const handlePayment = async (room: Room) => {
     setIsLoading(true);
     setError(null);

@@ -185,4 +185,53 @@ export class MembershipService {
       throw error;
     }
   }
+
+  async getUserPoints(userId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          name: true,
+          email: true,
+          tier: {
+            select: {
+              name: true,
+            },
+          },
+          pointTransactions: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            select: {
+              points: true,
+              type: true,
+            },
+          },
+        },
+      });
+
+      const pointTransactions = user?.pointTransactions || [];
+      const earnedPointTransactions = user?.pointTransactions.filter(
+        (tx) => tx.type === PointTransactionType.Earn
+      ) || [];
+      const redeemedPointTransactions = user?.pointTransactions.filter(
+        (tx) => tx.type === PointTransactionType.Redeem
+      ) || [];
+
+      return {
+        name: user?.name,
+        email: user?.email,
+        tier: user?.tier?.name,
+        pointTransactions,
+        earnedPointTransactions,
+        redeemedPointTransactions,
+        currentPoints: pointTransactions.reduce((acc, curr) => acc + curr.points, 0) -
+          redeemedPointTransactions.reduce((acc, curr) => acc + curr.points, 0),
+      };
+    } catch (error) {
+      console.error(error);
+    }
+  }
 }

@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     //   data: booking
     });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     return NextResponse.json(
       { status: 'error', message: error.message },
